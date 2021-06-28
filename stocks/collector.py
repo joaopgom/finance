@@ -69,7 +69,6 @@ class YahooCollector:
 
     @staticmethod
     def stocks_to_stocks_entity(table_rows: list) -> list:
-        # TODO: finish this method
         stocks_list = []
         for tr in table_rows:
             cels = tr.find_elements(By.TAG_NAME, 'td')
@@ -86,7 +85,7 @@ class YahooCollector:
                 else:
                     break
             stocks_list.append(stocks)
-        return stocks_list  # {stocks_item.symbol: stocks_item.as_dict() for stocks_item in stocks_list}
+        return stocks_list
 
     def collect_stocks(self) -> dict:
         stocks_table = self.find_stocks_table()
