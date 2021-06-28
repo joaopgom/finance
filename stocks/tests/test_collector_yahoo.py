@@ -50,7 +50,7 @@ class YahooCollectorTestCase(unittest.TestCase):
         add_filter_country = self.collector.find_add_country_filter()
         add_filter_country.click()
         input_filter_country = self.collector.find_input_country_filter(add_filter_country)
-        input_filter_country.send_keys('argentina')
+        input_filter_country.send_keys(self.collector.region)
         checkbox_filter_country = self.collector.find_check_filter_country(add_filter_country)
         class_check_filter_country = 'Ta(c) Pos(r) Va(tb) Pend(10px)'  # 'Fl(start) D(b) Mb(10px)'
         self.assertEqual(checkbox_filter_country.get_attribute('class'), class_check_filter_country)
@@ -61,12 +61,12 @@ class YahooCollectorTestCase(unittest.TestCase):
         add_filter_country = self.collector.find_add_country_filter()
         add_filter_country.click()
         input_filter_country = self.collector.find_input_country_filter(add_filter_country)
-        input_filter_country.send_keys('argentina')
+        input_filter_country.send_keys(self.collector.region)
         checkbox_filter_country = self.collector.find_check_filter_country(add_filter_country)
         checkbox_filter_country.click()
         added_filter = self.collector.driver.find_element_by_xpath(
             "//div[@id='screener-criteria']/div[2]/div[1]/div[1]/div[1]/div[1]/div[2]/ul/li/button/span")
-        self.assertEqual(added_filter.text, 'Argentina')
+        self.assertEqual(added_filter.text, self.collector.region)
 
     def test_find_button_stocks(self) -> None:
         self.collector.open_site()
@@ -81,7 +81,7 @@ class YahooCollectorTestCase(unittest.TestCase):
         add_filter_country = self.collector.find_add_country_filter()
         add_filter_country.click()
         input_filter_country = self.collector.find_input_country_filter(add_filter_country)
-        input_filter_country.send_keys('argentina')
+        input_filter_country.send_keys(self.collector.region)
         checkbox_filter_country = self.collector.find_check_filter_country(add_filter_country)
         checkbox_filter_country.click()
 
@@ -101,7 +101,10 @@ class YahooCollectorTestCase(unittest.TestCase):
         self.collector.add_country_filter()
         self.collector.search_stocks()
         stocks = self.collector.collect_stocks()
-        # TODO: continue test
+        self.assertIsInstance(stocks, dict)
+        for stock_symbol in stocks:
+            stock = stocks[stock_symbol]
+            self.assertTrue(stock_field in stock for stock_field in ['symbol', 'name', 'price'])
 
     def tearDown(self) -> None:
         self.collector.driver.close()

@@ -5,19 +5,19 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.webelement import FirefoxWebElement
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-# from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from .entities import StockEntity
+from selenium.common.exceptions import NoSuchElementException
 
 
 class YahooCollector:
     """ Collect Stocks info from Yahoo Finance """
     URL = 'https://finance.yahoo.com/screener/new'
 
-    def __init__(self):
+    def __init__(self, region: str = 'Argentina'):
+        self.region = region
         options = Options()
         options.add_argument("--headless")
-        # caps = DesiredCapabilities.FIREFOX
-        # caps['marionette'] = False
-        self.driver = webdriver.Firefox(webdriver.FirefoxProfile(), options=options)  # (options=options)
+        self.driver = webdriver.Firefox(webdriver.FirefoxProfile(), options=options)
 
     def open_site(self):
         self.driver.get(self.URL)
@@ -47,7 +47,7 @@ class YahooCollector:
         add_filter_country = self.find_add_country_filter()
         add_filter_country.click()
         input_filter_country = self.find_input_country_filter(add_filter_country)
-        input_filter_country.send_keys('Argentina')
+        input_filter_country.send_keys(self.region)
         checkbox_filter_country = self.find_check_filter_country(add_filter_country)
         checkbox_filter_country.click()
 
@@ -68,33 +68,45 @@ class YahooCollector:
         return self.driver.find_element_by_xpath(path_table_body)
 
     @staticmethod
-    def stocks_to_stocks_entity(table_rows):
+    def stocks_to_stocks_entity(table_rows: list) -> list:
         # TODO: finish this method
-        for index, tr in enumerate(table_rows):
+        stocks_list = []
+        for tr in table_rows:
             cels = tr.find_elements(By.TAG_NAME, 'td')
-            for cel in cels:
+            stocks = StockEntity()
+            for index, cel in enumerate(cels):
                 if index == 0:
                     cel_link = cel.find_element(By.TAG_NAME, 'a')
-                    print(cel_link.text)
-                    assert False
+                    stocks.symbol = cel_link.text
                 elif index == 1:
-                    pass
+                    stocks.name = cel_link.text
                 elif index == 2:
-                    pass
+                    cel_span = cel.find_element(By.TAG_NAME, 'span')
+                    stocks.price = cel_span.text
                 else:
                     break
+            stocks_list.append(stocks)
+        return stocks_list  # {stocks_item.symbol: stocks_item.as_dict() for stocks_item in stocks_list}
 
-    def collect_stocks(self):
+    def collect_stocks(self) -> dict:
         stocks_table = self.find_stocks_table()
         table_rows = stocks_table.find_elements(By.TAG_NAME, 'tr')
-        self.stocks_to_stocks_entity(table_rows)
+        stocks_list = self.stocks_to_stocks_entity(table_rows)
+        return {stocks_item.symbol: stocks_item.as_dict() for stocks_item in stocks_list}
 
     def execute(self) -> None:
-        self.open_site()
-        self.remove_default_filter()
-        self.add_country_filter()
-        self.search_stocks()
-        self.collect_stocks()
+        try:
+            self.open_site()
+            self.remove_default_filter()
+            self.add_country_filter()
+            self.search_stocks()
+            stocks = self.collect_stocks()
+        except NoSuchElementException:
+            pass
+        finally:
+            self.driver.close()
+            self.driver.quit()
+            return stocks or {}
 
 
 STRATEGY_COLLECTOR = {
@@ -104,9 +116,10 @@ STRATEGY_COLLECTOR = {
 
 class Collector:
     """ Default class to run a collector strategy """
-    def __init__(self, strategy: str = None):
+    def __init__(self, strategy: str = None, region: str = None):
         self.strategy = strategy or 'default'
+        self.region = region
 
     def execute(self) -> None:
-        strategy = STRATEGY_COLLECTOR[self.strategy]()
-        strategy.execute()
+        strategy = STRATEGY_COLLECTOR[self.strategy](self.region)
+        return strategy.execute()
