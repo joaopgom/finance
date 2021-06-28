@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import time
 import unittest
+from selenium.webdriver.firefox.webelement import FirefoxWebElement
+from selenium.webdriver.common.keys import Keys
 from stocks.collector import YahooCollector
 
 
@@ -49,7 +52,7 @@ class YahooCollectorTestCase(unittest.TestCase):
         input_filter_country = self.collector.find_input_country_filter(add_filter_country)
         input_filter_country.send_keys('argentina')
         checkbox_filter_country = self.collector.find_check_filter_country(add_filter_country)
-        class_check_filter_country = 'Fl(start) D(b) Mb(10px)'
+        class_check_filter_country = 'Ta(c) Pos(r) Va(tb) Pend(10px)'  # 'Fl(start) D(b) Mb(10px)'
         self.assertEqual(checkbox_filter_country.get_attribute('class'), class_check_filter_country)
 
     def test_filter_added(self) -> None:
@@ -71,6 +74,34 @@ class YahooCollectorTestCase(unittest.TestCase):
         class_button_find_stocks = 'Bgc($linkColor) C(white) Fw(500) Px(20px) Py(9px) Bdrs(3px) Bd(0) Fz(s) D(ib) ' \
                                    'Whs(nw) Miw(110px) Op(0.3)'
         self.assertEqual(button_find_stocks.get_attribute('class'), class_button_find_stocks)
+
+    def test_find_stocks_table(self) -> None:
+        self.collector.open_site()
+        self.collector.remove_default_filter()
+        add_filter_country = self.collector.find_add_country_filter()
+        add_filter_country.click()
+        input_filter_country = self.collector.find_input_country_filter(add_filter_country)
+        input_filter_country.send_keys('argentina')
+        checkbox_filter_country = self.collector.find_check_filter_country(add_filter_country)
+        checkbox_filter_country.click()
+
+        button_find_stocks = self.collector.find_button_find_stocks()
+        button_find_stocks.click()
+        # click not working, so use Keys.RETURN
+        button_find_stocks.send_keys(Keys.RETURN)
+
+        # TODO: change this, implement something that waits for the results to load
+        time.sleep(5)
+        stocks_table_body = self.collector.find_stocks_table()
+        self.assertIsInstance(stocks_table_body, FirefoxWebElement)
+
+    def test_collect_stocks(self):
+        self.collector.open_site()
+        self.collector.remove_default_filter()
+        self.collector.add_country_filter()
+        self.collector.search_stocks()
+        stocks = self.collector.collect_stocks()
+        # TODO: continue test
 
     def tearDown(self) -> None:
         self.collector.driver.close()
